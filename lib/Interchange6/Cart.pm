@@ -516,18 +516,25 @@ the zero-based index of the product within L</products>.
 
 sub update {
     my ( $self, @args ) = @_;
-    my @products;
+    $self->_update_cart_item(quantity => @args);
+}
 
+sub _update_cart_item {
+    my ($self, $key, @args) = @_;
+    croak "Missing attribute" unless $key;
+    my $accessor = $key;
+    my $mutator = "set_" . $key;
+    my @products;
   ARGS: while ( @args > 0 ) {
 
-        my ( $product, $sku, $qty );
+        my ( $product, $sku, $attr );
 
         if ( ref( $args[0] ) eq '' ) {
 
             # original API expecting list of sku/qty pairs
 
             $sku = shift @args;
-            $qty = shift @args;
+            $attr = shift @args;
 
             croak "sku not defined in arg to update" unless defined $sku;
 
@@ -554,7 +561,7 @@ sub update {
 
             my %selectors = %{ shift @args };
 
-            $qty = delete $selectors{quantity};
+            $attr = delete $selectors{$key};
 
             if ( defined $selectors{index} ) {
 
@@ -602,18 +609,20 @@ sub update {
 
         croak "Product not found for update" unless $product;
 
-        defined($qty) && ref($qty) eq ''
-          or croak "quantity argument to update must be defined";
+        defined($attr) && ref($attr) eq ''
+          or croak "$key argument to update must be defined";
 
-        if ( $qty == 0 ) {
+        if ($key eq 'quantity' and  $attr == 0 ) {
             $self->remove( $product->sku );
             next;
         }
 
-        # jump to next product if quantity stays the same
-        next ARGS if $qty == $product->quantity;
+        # jump to next product if the attribute stays the same
+        if (defined $product->$accessor and $attr eq $product->$accessor) {
+            next ARGS;
+        }
 
-        $product->set_quantity($qty);
+        $product->$mutator($attr);
         push @products, $product;
     }
 
@@ -621,6 +630,42 @@ sub update {
     $self->clear_weight;
     return @products;
 }
+
+=head2 update_sku
+
+Change the sku of a product already in the cart (the first argument).
+
+The API for the arguments are the same as C<update>
+
+=head2 update_canonical_sku
+
+Change the canonical sku of a product already in the cart.
+
+The API for the arguments are the same as C<update>
+
+=head2 update_name
+
+Change the name of a product already in the cart.
+
+The API for the arguments are the same as C<update>
+
+=cut
+
+sub update_sku {
+    my ($self, @args) = @_;
+    $self->_update_cart_item(sku => @args);
+}
+
+sub update_canonical_sku {
+    my ($self, @args) = @_;
+    $self->_update_cart_item(canonical_sku => @args);
+}
+
+sub update_name {
+    my ($self, @args) = @_;
+    $self->_update_cart_item(name => @args);
+}
+
 
 =head1 AUTHORS
 

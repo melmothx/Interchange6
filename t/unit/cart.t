@@ -629,4 +629,28 @@ cmp_ok( $cart->subtotal, '==', 5,  "subtotal is 5" );
 cmp_ok( $cart->total,    '==', 5,  "total is 5" );
 cmp_ok( $cart->weight,   '==', 10, "weight is 10" );
 
+lives_ok { $cart->update_sku(ONE => 'THREE') };
+{
+    my $product = $cart->products->[0];
+    is $product->sku, 'THREE';
+}
+lives_ok { $cart->update_sku(THREE => 'ONE') };
+
+lives_ok { $cart->update_canonical_sku(ONE => 'Hello') };
+lives_ok { $cart->update_name(ONE => 'Bau') };
+
+{
+    my $product = $cart->products->[0];
+    is ($product->sku, 'ONE');
+    is ($product->canonical_sku, 'Hello');
+    is ($product->name, 'Bau');
+}
+
+cmp_ok( $cart->count,    '==', 2,  "count is 2" );
+cmp_ok( $cart->quantity, '==', 3,  "quantity is 3" );
+cmp_ok( $cart->subtotal, '==', 5,  "subtotal is 5" );
+cmp_ok( $cart->total,    '==', 5,  "total is 5" );
+cmp_ok( $cart->weight,   '==', 10, "weight is 10" );
+
+
 done_testing;

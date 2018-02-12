@@ -65,6 +65,7 @@ has name => (
     is       => 'ro',
     isa      => NonEmptyStr,
     required => 1,
+    writer  => 'set_name',
 );
 
 =head2 price
@@ -133,10 +134,6 @@ sub _build_discount_percent {
     return int( ( $self->price - $self->selling_price ) / $self->price * 100 );
 }
 
-after 'set_price', 'set_selling_price' => sub {
-    shift->clear_discount_percent;
-};
-
 =head2 quantity
 
 Product quantity is optional and has to be a natural number greater
@@ -160,12 +157,6 @@ has quantity => (
     writer  => 'set_quantity',
 );
 
-after set_quantity => sub {
-    my $self = shift;
-    $self->clear_subtotal;
-    $self->clear_total;
-};
-
 =head2 sku
 
 Unique product identifier is required.
@@ -176,6 +167,7 @@ has sku => (
     is       => 'ro',
     isa      => NonEmptyStr,
     required => 1,
+    writer => 'set_sku',
 );
 
 =head2 canonical_sku
@@ -188,6 +180,7 @@ is the sku of the parent product.
 has canonical_sku => (
     is      => 'ro',
     default => undef,
+    writer => 'set_canonical_sku',
 );
 
 =head2 subtotal
@@ -372,17 +365,27 @@ sub should_combine_by_sku {
    return $self->combine;
 }
 
+after 'set_price', 'set_selling_price', 'set_sku' => sub {
+    shift->clear_discount_percent;
+};
+
+after qw/set_quantity set_name set_sku set_canonical_sku set_quantity/ => sub {
+    my $self = shift;
+    $self->clear_subtotal;
+    $self->clear_total;
+};
+
 # after cost changes we need to clear the cart subtotal/total
 # our own total is handled by the Costs role
 
-after 'clear_costs', 'cost_set', 'apply_cost', 'set_quantity' => sub {
+after 'clear_costs', 'cost_set', 'apply_cost', 'set_quantity', 'set_name', 'set_sku', 'set_canonical_sku'  => sub {
     my $self = shift;
     if ( $self->cart ) {
         $self->cart->clear_subtotal;
         $self->cart->clear_total;
     }
 };
-after 'set_quantity', 'set_weight' => sub {
+after 'set_quantity', 'set_weight', 'set_name', 'set_sku', 'set_canonical_sku' => sub {
     my $self = shift;
     if ( $self->cart ) {
         $self->cart->clear_weight;

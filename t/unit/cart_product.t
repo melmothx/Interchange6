@@ -195,4 +195,11 @@ ok( !$product->defined_extra('undef'), "!defined_extra('undef')" );
 lives_ok { $product->clear_extra } "ok clear_extra";
 cmp_ok( $product->keys_extra, '==', 0, "keys_extra has 0 keys" );
 
+dies_ok { $product->set_name('') } "fail set_name with empty string";
+dies_ok { $product->set_sku('') } "fail set_sku with empty string";
+dies_ok { $product->set_name(undef) } "fail set_name with undef";
+dies_ok { $product->set_sku(undef) } "fail set_sku with undef";
+lives_ok { $product->set_canonical_sku(undef) } "fail set_sku with empty string";
+is $product->canonical_sku, undef, "canonical sku can be undef";
+
 done_testing;
